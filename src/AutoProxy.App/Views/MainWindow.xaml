@@ -1,0 +1,125 @@
+<Window x:Class="AutoProxy.App.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:AutoProxy.App.ViewModels"
+        Title="AutoProxy" Height="720" Width="1120"
+        MinHeight="600" MinWidth="900"
+        WindowStartupLocation="CenterScreen"
+        d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d">
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="232"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Sidebar -->
+        <Border Grid.Column="0"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,1,0">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Margin="20,22,20,16">
+                    <TextBlock Text="AutoProxy" FontSize="21" FontWeight="Bold"/>
+                    <TextBlock Text="Intelligent proxy manager"
+                               Foreground="{StaticResource TextMutedBrush}"
+                               FontSize="12" Margin="0,3,0,0"/>
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Top">
+                    <Button Style="{StaticResource NavButtonDashboard}" Content="Dashboard"
+                            Command="{Binding GoDashboardCommand}"/>
+                    <Button Style="{StaticResource NavButtonProxies}" Content="Proxies"
+                            Command="{Binding GoProxiesCommand}"/>
+                    <Button Style="{StaticResource NavButtonNetworks}" Content="Networks"
+                            Command="{Binding GoNetworksCommand}"/>
+                    <Button Style="{StaticResource NavButtonLogs}" Content="Logs"
+                            Command="{Binding GoLogsCommand}"/>
+                    <Button Style="{StaticResource NavButtonSettings}" Content="Settings"
+                            Command="{Binding GoSettingsCommand}"/>
+                </StackPanel>
+
+                <Border DockPanel.Dock="Bottom" Margin="16"
+                        Background="{StaticResource CardBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="10" Padding="14">
+                    <StackPanel>
+                        <TextBlock Text="MODE" Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="10" FontWeight="Bold"/>
+                        <TextBlock Text="{Binding ModeText}" FontSize="14" FontWeight="SemiBold"
+                                   Margin="0,4,0,0"/>
+                        <TextBlock Text="{Binding StatusText}"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="12" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Border>
+            </DockPanel>
+        </Border>
+
+        <!-- Content -->
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1"
+                    Padding="24,18">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <StackPanel Margin="0,0,24,0">
+                            <TextBlock Text="NETWORK" Foreground="{StaticResource TextMutedBrush}"
+                                       FontSize="10" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding CurrentNetworkName}" FontSize="15"
+                                       FontWeight="SemiBold" Margin="0,3,0,0"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,24,0">
+                            <TextBlock Text="STATUS" Foreground="{StaticResource TextMutedBrush}"
+                                       FontSize="10" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding StatusText}" FontSize="15" Margin="0,3,0,0"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,24,0">
+                            <TextBlock Text="LATENCY" Foreground="{StaticResource TextMutedBrush}"
+                                       FontSize="10" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding LatencyText}" FontSize="15" Margin="0,3,0,0"/>
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Text="LAST CHECK" Foreground="{StaticResource TextMutedBrush}"
+                                       FontSize="10" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding LastCheckText}" FontSize="15" Margin="0,3,0,0"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="Mode" VerticalAlignment="Center"
+                                   Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,8,0"/>
+                        <ComboBox Width="170" ItemsSource="{Binding Modes}"
+                                  SelectedItem="{Binding SelectedMode}"/>
+                        <ComboBox Width="180" Margin="8,0,0,0"
+                                  ItemsSource="{Binding ManualProxies}"
+                                  SelectedItem="{Binding SelectedManualProxy}"
+                                  DisplayMemberPath="Name"
+                                  Visibility="{Binding SelectedMode,
+                                      Converter={StaticResource EqualsVisibility},
+                                      ConverterParameter=ManualProxy}"/>
+                        <Button Style="{StaticResource PrimaryButton}" Content="Apply"
+                                Margin="8,0,0,0" Command="{Binding ApplyModeCommand}"/>
+                        <Button Style="{StaticResource SecondaryButton}" Content="Test now"
+                                Margin="8,0,0,0" Command="{Binding TestConnectionCommand}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <ContentControl Grid.Row="1" Content="{Binding CurrentPage}"/>
+        </Grid>
+    </Grid>
+</Window>

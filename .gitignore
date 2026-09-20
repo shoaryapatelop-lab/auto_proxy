@@ -1,0 +1,39 @@
+## .NET build outputs
+bin/
+obj/
+[Bb]in/
+[Oo]bj/
+*.dll
+*.exe
+*.pdb
+*.cache
+*.lastbuildstate
+*.FileListAbsolute.txt
+
+## Test results
+TestResults/
+*.trx
+
+## Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+## Rider / ReSharper
+.idea/
+*.DotSettings.user
+_ReSharper*/
+
+## VS Code
+.vscode/
+
+## Common OS files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+## Logs produced by the app at runtime
+*.log

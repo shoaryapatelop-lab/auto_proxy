@@ -1,0 +1,66 @@
+<UserControl x:Class="AutoProxy.App.Views.NetworksView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:AutoProxy.App.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:NetworksViewModel}">
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+            <TextBlock Text="Network profiles" FontSize="22" FontWeight="Bold"/>
+            <TextBlock Text="Remembered behaviour per network. AutoProxy applies the saved preference when it recognises the network."
+                       Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+        </StackPanel>
+
+        <ListView Grid.Row="1" ItemsSource="{Binding Networks}" SelectedItem="{Binding Selected}">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="Network" Width="230"
+                                    DisplayMemberBinding="{Binding DisplayName}"/>
+                    <GridViewColumn Header="Interface" Width="130"
+                                    DisplayMemberBinding="{Binding InterfaceType}"/>
+                    <GridViewColumn Header="Remembered mode" Width="150"
+                                    DisplayMemberBinding="{Binding Mode}"/>
+                    <GridViewColumn Header="Preferred proxy" Width="180"
+                                    DisplayMemberBinding="{Binding PreferredProxyName}"/>
+                    <GridViewColumn Header="Last seen" Width="170"
+                                    DisplayMemberBinding="{Binding LastSeenText}"/>
+                </GridView>
+            </ListView.View>
+        </ListView>
+
+        <Border Grid.Row="2" Margin="0,16,0,0" Padding="16"
+                Background="{StaticResource CardBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Preferred mode for selected network" VerticalAlignment="Center"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <Button Style="{StaticResource SecondaryButton}" Content="Remember Direct"
+                            Margin="12,0,0,0" Command="{Binding SetDirectPreferredCommand}"/>
+                    <ComboBox Width="180" Margin="12,0,0,0" ItemsSource="{Binding AllProxies}"
+                              SelectedItem="{Binding PreferredProxyChoice}"
+                              DisplayMemberPath="Name"/>
+                    <Button Style="{StaticResource SecondaryButton}" Content="Remember Proxy"
+                            Margin="8,0,0,0" Command="{Binding SetProxyPreferredCommand}"/>
+                </StackPanel>
+
+                <Button Grid.Column="1" Style="{StaticResource DangerButton}" Content="Forget network"
+                        Command="{Binding ForgetCommand}"/>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

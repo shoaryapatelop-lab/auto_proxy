@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AutoProxy — Test Report · 2026-09-20</title>
+<style>
+  :root{
+    --bg:#0c0e12;
+    --bg-2:#10141a;
+    --panel:#12161d;
+    --panel-2:#171c25;
+    --line:#242c38;
+    --line-soft:#1b212b;
+    --ink:#dbe4ee;
+    --ink-dim:#8a96a6;
+    --ink-faint:#5b6675;
+    --accent:#a7f33c;        /* citron green */
+    --accent-hi:#c8ff6e;
+    --accent-ink:#0c0e12;
+    --amber:#ffb634;
+    --red:#ff5a4e;
+    --grid:rgba(167,243,60,.05);
+    --mono:'Cascadia Mono','JetBrains Mono','IBM Plex Mono',Consolas,'Courier New',monospace;
+    --serif:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--mono);
+    font-size:14px;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+      radial-gradient(1200px 500px at 15% -10%, rgba(167,243,60,.07), transparent 60%),
+      radial-gradient(900px 500px at 110% 0%, rgba(255,182,52,.05), transparent 55%);
+    background-size:44px 44px,44px 44px,100% 100%,100% 100%;
+  }
+  ::selection{background:var(--accent);color:var(--accent-ink)}
+  a{color:var(--accent);text-decoration:none}
+
+  /* ---------- top bar ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:50;
+    display:flex;align-items:center;gap:18px;
+    padding:12px 28px;
+    background:rgba(12,14,18,.86);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .brand{display:flex;align-items:center;gap:12px}
+  .mark{
+    width:30px;height:30px;flex:none;
+    border:1.5px solid var(--accent);
+    display:grid;place-items:center;
+    font-weight:700;font-size:13px;color:var(--accent);
+    transform:rotate(45deg);
+  }
+  .mark span{transform:rotate(-45deg)}
+  .brand b{font-size:15px;letter-spacing:.28em;font-weight:700}
+  .brand small{display:block;color:var(--ink-faint);letter-spacing:.34em;font-size:9px}
+  .topbar .spacer{flex:1}
+  .topbar .meta{display:flex;gap:22px;color:var(--ink-dim);font-size:11px;letter-spacing:.08em}
+  .topbar .meta b{color:var(--ink);font-weight:600}
+  .chip{
+    display:inline-flex;align-items:center;gap:8px;
+    border:1px solid var(--line);border-radius:999px;
+    padding:5px 13px;font-size:11px;letter-spacing:.14em;
+    color:var(--ink-dim);background:var(--panel);
+  }
+  .chip .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent)}
+  .chip.red .dot{background:var(--red);box-shadow:0 0 8px var(--red)}
+
+  /* ---------- layout ---------- */
+  .wrap{max-width:1180px;margin:0 auto;padding:38px 28px 80px}
+
+  /* ---------- hero ---------- */
+  .hero{
+    display:grid;grid-template-columns:minmax(320px,1.15fr) minmax(380px,1fr);
+    gap:34px;align-items:stretch;
+  }
+  .hero-main{
+    border:1px solid var(--line);
+    background:linear-gradient(160deg,var(--panel) 0%,var(--bg-2) 100%);
+    padding:30px 32px;position:relative;overflow:hidden;
+  }
+  .hero-main::before{
+    content:"";position:absolute;inset:0;
+    background-image:linear-gradient(45deg,transparent 96%,var(--line-soft) 96%);
+    background-size:18px 18px;opacity:.5;pointer-events:none;
+  }
+  .kicker{font-size:10px;letter-spacing:.42em;color:var(--ink-faint);text-transform:uppercase;margin-bottom:20px}
+  .verdict{display:flex;align-items:flex-end;gap:22px;flex-wrap:wrap}
+  .big-num{
+    font-family:var(--serif);
+    font-size:96px;line-height:.9;font-weight:600;letter-spacing:-.03em;
+    color:var(--accent);text-shadow:0 0 42px rgba(167,243,60,.35);
+    display:flex;align-items:baseline;gap:12px;
+  }
+  .big-num .small{font-size:30px;color:var(--ink-dim);font-family:var(--mono);letter-spacing:0;font-weight:400}
+  .seal{
+    width:96px;height:96px;flex:none;border-radius:50%;
+    border:3px solid var(--accent);
+    display:grid;place-items:center;
+    color:var(--accent);font-size:13px;letter-spacing:.3em;font-weight:700;
+    box-shadow:0 0 0 6px rgba(167,243,60,.08), inset 0 0 24px rgba(167,243,60,.12);
+    position:relative;
+    animation:sealpop .5s cubic-bezier(.2,1.4,.4,1) both .15s;
+  }
+  @keyframes sealpop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+  .status-line{margin-top:22px;color:var(--ink-dim);font-size:12px;letter-spacing:.06em;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+  .status-line b{color:var(--accent)}
+  .tagline{font-family:var(--serif);font-style:italic;color:var(--ink);font-size:17px;margin-top:6px}
+  .hero-side{display:grid;gap:14px;align-content:start}
+  .fact{border:1px solid var(--line);background:var(--panel);padding:14px 18px;display:flex;justify-content:space-between;gap:16px;align-items:baseline}
+  .fact dt{font-size:10px;letter-spacing:.3em;color:var(--ink-faint);text-transform:uppercase}
+  .fact dd{font-size:12.5px;color:var(--ink);text-align:right;word-break:break-word}
+  .fact dd .ac{color:var(--accent)}
+
+  /* ---------- command transcript ---------- */
+  .cmd{
+    margin-top:26px;border-left:3px solid var(--accent);
+    background:var(--bg-2);padding:16px 20px;
+    font-size:12px;line-height:2;color:var(--ink-dim);
+  }
+  .cmd .p{color:var(--ink-faint)}
+  .cmd .c{color:var(--ink)}
+  .cmd .o{color:var(--accent)}
+
+  /* ---------- summary cards ---------- */
+  .cards{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-top:34px}
+  .card{border:1px solid var(--line);background:var(--panel);padding:18px 20px;position:relative}
+  .card .t{font-size:10px;letter-spacing:.3em;color:var(--ink-faint);text-transform:uppercase}
+  .card .v{font-family:var(--serif);font-size:38px;line-height:1.1;margin-top:8px;font-weight:600}
+  .card .s{font-size:10.5px;color:var(--ink-faint);margin-top:4px;letter-spacing:.1em}
+  .card.green{border-color:rgba(167,243,60,.45)}
+  .card.green .v{color:var(--accent)}
+  .card.red .v{color:var(--red)}
+  .card.amber .v{color:var(--amber)}
+
+  /* ---------- section head ---------- */
+  .sec{margin-top:52px;display:flex;align-items:center;gap:16px}
+  .sec h2{font-size:15px;letter-spacing:.3em;text-transform:uppercase;font-weight:700}
+  .sec .line{flex:1;height:1px;background:var(--line)}
+  .sec .idx{color:var(--ink-faint);font-size:11px;letter-spacing:.2em}
+
+  /* ---------- component bars ---------- */
+  .comp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 28px;margin-top:22px}
+  .comp{border:1px solid var(--line-soft);background:var(--panel);padding:12px 16px}
+  .comp .row{display:flex;align-items:baseline;gap:12px}
+  .comp .nm{font-size:11.5px;letter-spacing:.04em;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .comp .cnt{margin-left:auto;color:var(--ink-dim);font-size:11px}
+  .track{height:7px;background:var(--bg-2);border:1px solid var(--line-soft);margin-top:9px;overflow:hidden}
+  .fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-hi));transform-origin:left;animation:grow 1s cubic-bezier(.2,.9,.3,1) both}
+  .fill:hover{brightness:1.2}
+  @keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+
+  /* ---------- table ---------- */
+  .toolbar{margin-top:20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .toolbar input{
+    background:var(--bg-2);border:1px solid var(--line);color:var(--ink);
+    font-family:var(--mono);font-size:12.5px;padding:9px 14px;outline:none;width:280px;
+  }
+  .toolbar input:focus{border-color:var(--accent)}
+  .toolbar .filters{display:flex;gap:8px;flex-wrap:wrap}
+  .pill{border:1px solid var(--line);background:var(--panel);color:var(--ink-dim);padding:7px 12px;font-size:11px;letter-spacing:.1em;cursor:pointer;font-family:var(--mono)}
+  .pill.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+  .totals{margin-left:auto;color:var(--ink-dim);font-size:11px;letter-spacing:.12em}
+  .totals b{color:var(--accent)}
+
+  table{width:100%;margin-top:16px;border-collapse:collapse;font-size:12.5px}
+  thead th{
+    text-align:left;font-size:10px;letter-spacing:.28em;text-transform:uppercase;
+    color:var(--ink-faint);padding:11px 14px;border-bottom:1px solid var(--line);
+    position:sticky;top:57px;background:var(--bg);z-index:5;
+  }
+  tbody tr{border-bottom:1px solid var(--line-soft)}
+  tbody tr:hover{background:rgba(167,243,60,.035)}
+  tbody td{padding:9px 14px;vertical-align:top}
+  .grp{background:var(--bg-2)}
+  .grp td{color:var(--accent);letter-spacing:.14em;font-size:10px;text-transform:uppercase;padding-top:13px;padding-bottom:8px}
+  .grp .n{color:var(--ink-faint);letter-spacing:0}
+  .tname{color:var(--ink);word-break:break-word}
+  .dur{color:var(--ink-faint);white-space:nowrap;font-size:11px}
+  .out{white-space:nowrap}
+  .badge{display:inline-block;padding:2px 10px;font-size:10px;letter-spacing:.18em;font-weight:700}
+  .badge.pass{background:rgba(167,243,60,.12);color:var(--accent);border:1px solid rgba(167,243,60,.4)}
+  .badge.fail{background:rgba(255,90,78,.12);color:var(--red);border:1px solid rgba(255,90,78,.4)}
+  .asm{color:var(--ink-faint);font-size:10.5px;white-space:nowrap}
+  body.mono-len tbody tr:nth-child(even){background:rgba(255,255,255,.012)}
+
+  /* ---------- footer ---------- */
+  .foot{margin-top:60px;padding-top:22px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:18px;color:var(--ink-faint);font-size:11px;letter-spacing:.08em;flex-wrap:wrap}
+  .foot b{color:var(--ink-dim);font-weight:600}
+
+  /* ---------- responsive ---------- */
+  @media(max-width:960px){
+    .hero{grid-template-columns:1fr}
+    .cards{grid-template-columns:repeat(2,1fr)}
+    .comp-grid{grid-template-columns:1fr}
+  }
+  @media(max-width:600px){
+    .cards{grid-template-columns:1fr}
+    .big-num{font-size:64px}
+    .topbar .meta{display:none}
+  }
+  @media print{
+    .topbar{position:static}
+    thead th{position:static}
+    body{background:#fff;color:#000}
+    .card,.comp,.fact,.hero-main{background:#fff}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="mark"><span>A▸</span></div>
+    <div>
+      <b>AUTOPROXY</b>
+      <small>SYSTEM · TEST REPORT</small>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <div class="meta">
+    <span>REV <b>001</b></span>
+    <span>RUN <b id="runId">2026-09-20</b></span>
+    <span>SDK <b>8.0.425</b></span>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-main">
+      <div class="kicker">Verification Report · Full Regression Suite</div>
+      <div class="verdict">
+        <div class="big-num"><span id="passTotal">106</span><span class="small">/ <span id="allTotal">106</span> PASSED</span></div>
+        <div class="seal">PASS</div>
+      </div>
+      <div class="status-line">
+        <span>FAILURES <b id="failTotal">0</b></span><span>·</span>
+        <span>SKIPPED <b id="skipTotal">0</b></span><span>·</span>
+        <span>RATE <b id="ratePct">100.0%</b></span><span>·</span>
+        <span>DURATION <b id="durTotal">2.8 s</b></span>
+      </div>
+      <div class="tagline">All subsystems verified — detection, ranking, decision, application, credentialing and Windows integration.</div>
+    </div>
+    <div class="hero-side">
+      <dl class="fact"><dt>Project</dt><dd>AutoProxy · V:\IOT\AutoProxy</dd></dl>
+      <dl class="fact"><dt>Solution</dt><dd>AutoProxy.sln (6 projects)</dd></dl>
+      <dl class="fact"><dt>Configuration</dt><dd>Debug | Any CPU · <span class="ac">net8.0</span></dd></dl>
+      <dl class="fact"><dt>Framework</dt><dd>xUnit 2.9.2 · Test SDK 17.12.0</dd></dl>
+      <dl class="fact"><dt>Platform</dt><dd>Windows 10.0.26200 · AMD64</dd></dl>
+      <dl class="fact"><dt>Host / Operator</dt><dd>DESKTOP-TUTQMG2 / quicksilver</dd></dl>
+    </div>
+  </section>
+
+  <!-- COMMAND TRANSCRIPT -->
+  <div class="cmd">
+    <span class="p">PS V:\IOT\AutoProxy&gt;</span> <span class="c">dotnet restore AutoProxy.sln</span> <span class="o">✔ OK — all projects up-to-date</span><br>
+    <span class="p">PS V:\IOT\AutoProxy&gt;</span> <span class="c">dotnet build AutoProxy.sln --configuration Debug</span> <span class="o">✔ 0 warnings · 0 errors · 5.15s</span><br>
+    <span class="p">PS V:\IOT\AutoProxy&gt;</span> <span class="c">dotnet test AutoProxy.sln --configuration Debug</span> <span class="o">✔ 106/106 passed</span>
+  </div>
+
+  <!-- SUMMARY CARDS -->
+  <div class="cards">
+    <div class="card green"><div class="t">Total Tests</div><div class="v">106</div><div class="s">CONSOLE + TRX</div></div>
+    <div class="card green"><div class="t">Passed</div><div class="v">106</div><div class="s">100.0% RATE</div></div>
+    <div class="card red"><div class="t">Failed</div><div class="v">0</div><div class="s">ZERO DEFECTS</div></div>
+    <div class="card amber"><div class="t">Skipped</div><div class="v">0</div><div class="s">NO SKIPS</div></div>
+    <div class="card"><div class="t">Run Time</div><div class="v" id="cardDur">2.8s</div><div class="s">2 x Test Hosts</div></div>
+  </div>
+
+  <!-- COMPONENT COVERAGE -->
+  <div class="sec"><span class="idx">§01</span><h2>Component Coverage</h2><div class="line"></div><span class="idx" id="classTotal">14 CLASSES</span></div>
+  <div class="comp-grid" id="compGrid"></div>
+
+  <!-- TEST LOG -->
+  <div class="sec"><span class="idx">§02</span><h2>Test Log</h2><div class="line"></div><span class="idx">106 RECORDS</span></div>
+  <div class="toolbar">
+    <input id="q" type="text" placeholder="filter tests…" autocomplete="off">
+    <div class="filters" id="filters"></div>
+    <span class="totals">SHOWING <b id="shown">106</b> OF <span id="allShown">106</span></span>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:22%">Assembly</th>
+        <th>Test</th>
+        <th style="width:90px">Duration</th>
+        <th style="width:90px">Outcome</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+
+  <div class="sec"><span class="idx">§03</span><h2>Methodology</h2><div class="line"></div></div>
+  <div class="cmd" style="margin-top:20px">
+    <span class="c">Environment:</span> .NET SDK 8.0.425 (also 10.0.401 present) · restore/build/test per <b>WORKFLOW.txt</b> §4–§5.<br>
+    <span class="c">Scope:</span> 12 Core classes (unit + integration) · 2 Windows classes (integration: Credential Manager + registry round-trips).<br>
+    <span class="c">Outcome:</span> every assertion green. Build emits <b>0 warnings, 0 errors</b>. See <b>WORKFLOW.txt §8</b> for the appended work-log entry.
+  </div>
+
+  <div class="foot">
+    <div><b>AUTOPROXY</b> · compiled report — generated <span id="genAt"></span></div>
+    <div>reports/AutoProxy-TestReport-2026-09-20.html · self-contained, no external assets</div>
+  </div>
+</div>
+
+<script type="application/json" id="testdata">[
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.DirectTestResultClassificationTests",
+        "TestName":  "AutoProxy.Core.Tests.DirectTestResultClassificationTests.All_cancelled_yields_test_cancelled",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ProxyValidatorTests",
+        "TestName":  "AutoProxy.Core.Tests.ProxyValidatorTests.Invalid_ports_are_rejected(port: 0)",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.RepositoryTests",
+        "TestName":  "AutoProxy.Core.Tests.RepositoryTests.Detection_history_is_persisted_and_read_back",
+        "Outcome":  "Passed",
+        "DurationMs":  14
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.RetryPolicyTests",
+        "TestName":  "AutoProxy.Core.Tests.RetryPolicyTests.Escalates_only_after_threshold_failures",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.DecisionEngineTests",
+        "TestName":  "AutoProxy.Core.Tests.DecisionEngineTests.Direct_failure_with_working_proxy_selects_proxy",
+        "Outcome":  "Passed",
+        "DurationMs":  1
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.RepositoryTests",
+        "TestName":  "AutoProxy.Core.Tests.RepositoryTests.Deleting_a_preferred_proxy_clears_the_network_reference",
+        "Outcome":  "Passed",
+        "DurationMs":  10
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.DetectionEngineIntegrationTests",
+        "TestName":  "AutoProxy.Core.Tests.DetectionEngineIntegrationTests.Empty_proxy_store_and_direct_ok_is_direct",
+        "Outcome":  "Passed",
+        "DurationMs":  5
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.LogServiceTests",
+        "TestName":  "AutoProxy.Core.Tests.LogServiceTests.Credentials_in_log_messages_are_redacted(input: \"user:secret@proxy.example:8080\", expected: \"[credentials hidden]@proxy.example:8080\")",
+        "Outcome":  "Passed",
+        "DurationMs":  1
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.MonitoringServiceTests",
+        "TestName":  "AutoProxy.Core.Tests.MonitoringServiceTests.Manual_test_reports_without_touching_the_system_proxy",
+        "Outcome":  "Passed",
+        "DurationMs":  18
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ProxyValidatorTests",
+        "TestName":  "AutoProxy.Core.Tests.ProxyValidatorTests.FormatAddress_formats_endpoints_correctly(host: \"proxy.example.com\", port: 8080, expected: \"proxy.example.com:8080\")",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.DirectTestResultClassificationTests",
+        "TestName":  "AutoProxy.Core.Tests.DirectTestResultClassificationTests.Dns_failure_beats_timeout_in_priority",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.RetryPolicyTests",
+        "TestName":  "AutoProxy.Core.Tests.RetryPolicyTests.Threshold_below_one_is_clamped_to_one",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.DetectionEngineIntegrationTests",
+        "TestName":  "AutoProxy.Core.Tests.DetectionEngineIntegrationTests.Preferred_proxy_is_tested_first",
+        "Outcome":  "Passed",
+        "DurationMs":  1
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.DecisionEngineTests",
+        "TestName":  "AutoProxy.Core.Tests.DecisionEngineTests.Proxy_reason_mentions_direct_failure_cause_and_proxy",
+        "Outcome":  "Passed",
+        "DurationMs":  10
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.DecisionEngineTests",
+        "TestName":  "AutoProxy.Core.Tests.DecisionEngineTests.Direct_reason_lists_endpoint_count",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ProxyValidatorTests",
+        "TestName":  "AutoProxy.Core.Tests.ProxyValidatorTests.Invalid_hosts_are_rejected(host: \"\")",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ApplyEngineTests",
+        "TestName":  "AutoProxy.Core.Tests.ApplyEngineTests.Direct_apply_disables_without_connectivity_verify",
+        "Outcome":  "Passed",
+        "DurationMs":  306
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.MonitoringServiceTests",
+        "TestName":  "AutoProxy.Core.Tests.MonitoringServiceTests.Apply_failure_sets_error_state_and_rolls_back",
+        "Outcome":  "Passed",
+        "DurationMs":  2
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ApplyEngineTests",
+        "TestName":  "AutoProxy.Core.Tests.ApplyEngineTests.Enable_failure_with_failed_rollback_is_explicitly_flagged",
+        "Outcome":  "Passed",
+        "DurationMs":  1
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ProxyRankerTests",
+        "TestName":  "AutoProxy.Core.Tests.ProxyRankerTests.Rank_keeps_all_candidates_and_is_stable_across_calls",
+        "Outcome":  "Passed",
+        "DurationMs":  13
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ProxyRankerTests",
+        "TestName":  "AutoProxy.Core.Tests.ProxyRankerTests.Ties_resolve_lowest_id_first_for_determinism",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ApplyEngineTests",
+        "TestName":  "AutoProxy.Core.Tests.ApplyEngineTests.Read_back_mismatch_triggers_rollback_without_health_check",
+        "Outcome":  "Passed",
+        "DurationMs":  329
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.LogServiceTests",
+        "TestName":  "AutoProxy.Core.Tests.LogServiceTests.Credentials_in_log_messages_are_redacted(input: \"connecting to https://user:secret@example.com/prox\"···, expected: \"connecting to https://[credentials hidden]@example\"···)",
+        "Outcome":  "Passed",
+        "DurationMs":  2
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.MonitoringServiceTests",
+        "TestName":  "AutoProxy.Core.Tests.MonitoringServiceTests.New_trigger_cancels_in_flight_detection_and_runs_newest",
+        "Outcome":  "Passed",
+        "DurationMs":  4
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.DetectionEngineIntegrationTests",
+        "TestName":  "AutoProxy.Core.Tests.DetectionEngineIntegrationTests.Direct_failure_with_working_proxy_selects_and_remembers_proxy",
+        "Outcome":  "Passed",
+        "DurationMs":  3
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ApplyEngineTests",
+        "TestName":  "AutoProxy.Core.Tests.ApplyEngineTests.Verification_is_skipped_when_disabled_in_settings",
+        "Outcome":  "Passed",
+        "DurationMs":  306
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.DirectTestResultClassificationTests",
+        "TestName":  "AutoProxy.Core.Tests.DirectTestResultClassificationTests.Healthy_endpoint_yields_none_reason",
+        "Outcome":  "Passed",
+        "DurationMs":  19
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.RetryPolicyTests",
+        "TestName":  "AutoProxy.Core.Tests.RetryPolicyTests.Success_resets_the_counter",
+        "Outcome":  "Passed",
+        "DurationMs":  7
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.RepositoryTests",
+        "TestName":  "AutoProxy.Core.Tests.RepositoryTests.Extensionless_path_is_treated_as_a_directory",
+        "Outcome":  "Passed",
+        "DurationMs":  9
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ProxyValidatorTests",
+        "TestName":  "AutoProxy.Core.Tests.ProxyValidatorTests.Valid_hosts_are_accepted(host: \"localhost\")",
+        "Outcome":  "Passed",
+        "DurationMs":  15
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ProxyValidatorTests",
+        "TestName":  "AutoProxy.Core.Tests.ProxyValidatorTests.FormatAddress_formats_endpoints_correctly(host: \" 10.0.0.1 \", port: 8080, expected: \"10.0.0.1:8080\")",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ProxyValidatorTests",
+        "TestName":  "AutoProxy.Core.Tests.ProxyValidatorTests.Invalid_ports_are_rejected(port: 65536)",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.MonitoringServiceTests",
+        "TestName":  "AutoProxy.Core.Tests.MonitoringServiceTests.Manual_mode_commits_a_truthful_state",
+        "Outcome":  "Passed",
+        "DurationMs":  10
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.MonitoringServiceTests",
+        "TestName":  "AutoProxy.Core.Tests.MonitoringServiceTests.Offline_direct_with_working_proxy_applies_proxy",
+        "Outcome":  "Passed",
+        "DurationMs":  334
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.DecisionEngineTests",
+        "TestName":  "AutoProxy.Core.Tests.DecisionEngineTests.First_successful_proxy_is_selected",
+        "Outcome":  "Passed",
+        "DurationMs":  1
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ProxyValidatorTests",
+        "TestName":  "AutoProxy.Core.Tests.ProxyValidatorTests.Invalid_hosts_are_rejected(host: \"-leading.example.com\")",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ConnectivityTesterTests",
+        "TestName":  "AutoProxy.Core.Tests.ConnectivityTesterTests.External_cancellation_is_classified_as_cancelled",
+        "Outcome":  "Passed",
+        "DurationMs":  2
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ApplyEngineTests",
+        "TestName":  "AutoProxy.Core.Tests.ApplyEngineTests.Proxy_state_without_a_proxy_profile_fails",
+        "Outcome":  "Passed",
+        "DurationMs":  1
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.RepositoryTests",
+        "TestName":  "AutoProxy.Core.Tests.RepositoryTests.Network_upsert_assigns_id_and_updates_in_place",
+        "Outcome":  "Passed",
+        "DurationMs":  12
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.RepositoryTests",
+        "TestName":  "AutoProxy.Core.Tests.RepositoryTests.Logs_are_batched_and_read_back_newest_first",
+        "Outcome":  "Passed",
+        "DurationMs":  14
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.AppSettingsTests",
+        "TestName":  "AutoProxy.Core.Tests.AppSettingsTests.Effective_urls_include_defaults_and_custom",
+        "Outcome":  "Passed",
+        "DurationMs":  12
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ConnectivityTesterTests",
+        "TestName":  "AutoProxy.Core.Tests.ConnectivityTesterTests.Login_page_content_is_classified_as_login_page",
+        "Outcome":  "Passed",
+        "DurationMs":  4
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ApplyEngineTests",
+        "TestName":  "AutoProxy.Core.Tests.ApplyEngineTests.Already_in_desired_state_is_a_no_op",
+        "Outcome":  "Passed",
+        "DurationMs":  1
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.RepositoryTests",
+        "TestName":  "AutoProxy.Core.Tests.RepositoryTests.GetEnabled_filters_disabled_proxies",
+        "Outcome":  "Passed",
+        "DurationMs":  58
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ProxyValidatorTests",
+        "TestName":  "AutoProxy.Core.Tests.ProxyValidatorTests.Validate_reports_missing_name",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.DecisionEngineTests",
+        "TestName":  "AutoProxy.Core.Tests.DecisionEngineTests.No_endpoints_is_error",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ConnectivityTesterTests",
+        "TestName":  "AutoProxy.Core.Tests.ConnectivityTesterTests.Redirect_without_login_markers_is_content_mismatch",
+        "Outcome":  "Passed",
+        "DurationMs":  1
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ApplyEngineTests",
+        "TestName":  "AutoProxy.Core.Tests.ApplyEngineTests.Enable_failure_triggers_rollback",
+        "Outcome":  "Passed",
+        "DurationMs":  4
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ConnectivityTesterTests",
+        "TestName":  "AutoProxy.Core.Tests.ConnectivityTesterTests.Redirect_to_login_host_is_classified_as_login_redirect",
+        "Outcome":  "Passed",
+        "DurationMs":  1
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ApplyEngineTests",
+        "TestName":  "AutoProxy.Core.Tests.ApplyEngineTests.Proxy_traffic_verification_failure_triggers_rollback",
+        "Outcome":  "Passed",
+        "DurationMs":  306
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ApplyEngineTests",
+        "TestName":  "AutoProxy.Core.Tests.ApplyEngineTests.Proxy_apply_succeeds_and_verifies_traffic",
+        "Outcome":  "Passed",
+        "DurationMs":  301
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.RetryPolicyTests",
+        "TestName":  "AutoProxy.Core.Tests.RetryPolicyTests.Reset_clears_the_counter",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.AppSettingsTests",
+        "TestName":  "AutoProxy.Core.Tests.AppSettingsTests.Effective_urls_dedupe_and_ignore_blanks",
+        "Outcome":  "Passed",
+        "DurationMs":  1
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ProxyValidatorTests",
+        "TestName":  "AutoProxy.Core.Tests.ProxyValidatorTests.Invalid_hosts_are_rejected(host: \"   \")",
+        "Outcome":  "Passed",
+        "DurationMs":  1
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ProxyValidatorTests",
+        "TestName":  "AutoProxy.Core.Tests.ProxyValidatorTests.FormatAddress_formats_endpoints_correctly(host: \"2001:db8::5\", port: 3128, expected: \"[2001:db8::5]:3128\")",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.DecisionEngineTests",
+        "TestName":  "AutoProxy.Core.Tests.DecisionEngineTests.Direct_failure_with_no_proxies_is_offline",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ProxyValidatorTests",
+        "TestName":  "AutoProxy.Core.Tests.ProxyValidatorTests.Validate_reports_bad_port",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.DetectionEngineIntegrationTests",
+        "TestName":  "AutoProxy.Core.Tests.DetectionEngineIntegrationTests.No_active_network_is_offline",
+        "Outcome":  "Passed",
+        "DurationMs":  1
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ProxyValidatorTests",
+        "TestName":  "AutoProxy.Core.Tests.ProxyValidatorTests.Invalid_hosts_are_rejected(host: \"http://proxy.example.com\")",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.DecisionEngineTests",
+        "TestName":  "AutoProxy.Core.Tests.DecisionEngineTests.Direct_failure_with_only_failing_proxies_is_offline",
+        "Outcome":  "Passed",
+        "DurationMs":  1
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.DetectionEngineIntegrationTests",
+        "TestName":  "AutoProxy.Core.Tests.DetectionEngineIntegrationTests.Result_carries_direct_and_proxy_diagnostics",
+        "Outcome":  "Passed",
+        "DurationMs":  1
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.DecisionEngineTests",
+        "TestName":  "AutoProxy.Core.Tests.DecisionEngineTests.Captive_portal_takes_priority_over_internet",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.RepositoryTests",
+        "TestName":  "AutoProxy.Core.Tests.RepositoryTests.Settings_return_defaults_when_unset_and_round_trip_when_saved",
+        "Outcome":  "Passed",
+        "DurationMs":  32
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.RepositoryTests",
+        "TestName":  "AutoProxy.Core.Tests.RepositoryTests.Proxy_crud_round_trips_all_fields",
+        "Outcome":  "Passed",
+        "DurationMs":  12
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ProxyValidatorTests",
+        "TestName":  "AutoProxy.Core.Tests.ProxyValidatorTests.FormatAddress_formats_endpoints_correctly(host: \"127.0.0.1\", port: 8080, expected: \"127.0.0.1:8080\")",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ApplyEngineTests",
+        "TestName":  "AutoProxy.Core.Tests.ApplyEngineTests.Non_connectable_states_also_disable_the_proxy(state: CaptivePortal)",
+        "Outcome":  "Passed",
+        "DurationMs":  306
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ProxyValidatorTests",
+        "TestName":  "AutoProxy.Core.Tests.ProxyValidatorTests.Valid_ports_are_accepted(port: 1)",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.LogServiceTests",
+        "TestName":  "AutoProxy.Core.Tests.LogServiceTests.Credentials_in_log_messages_are_redacted(input: \"No credentials anywhere in this message.\", expected: \"No credentials anywhere in this message.\")",
+        "Outcome":  "Passed",
+        "DurationMs":  33
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ProxyValidatorTests",
+        "TestName":  "AutoProxy.Core.Tests.ProxyValidatorTests.Valid_hosts_are_accepted(host: \"my-proxy.local\")",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.DirectTestResultClassificationTests",
+        "TestName":  "AutoProxy.Core.Tests.DirectTestResultClassificationTests.Login_redirect_yields_captive_portal_reason",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ConnectivityTesterTests",
+        "TestName":  "AutoProxy.Core.Tests.ConnectivityTesterTests.Timeout_is_classified_after_the_timeout_window",
+        "Outcome":  "Passed",
+        "DurationMs":  330
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ProxyValidatorTests",
+        "TestName":  "AutoProxy.Core.Tests.ProxyValidatorTests.Invalid_ports_are_rejected(port: -1)",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ProxyValidatorTests",
+        "TestName":  "AutoProxy.Core.Tests.ProxyValidatorTests.Valid_ports_are_accepted(port: 65535)",
+        "Outcome":  "Passed",
+        "DurationMs":  3
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ProxyValidatorTests",
+        "TestName":  "AutoProxy.Core.Tests.ProxyValidatorTests.Invalid_hosts_are_rejected(host: \"bad host\")",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.DecisionEngineTests",
+        "TestName":  "AutoProxy.Core.Tests.DecisionEngineTests.Internet_available_is_direct_even_when_proxies_exist",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ConnectivityTesterTests",
+        "TestName":  "AutoProxy.Core.Tests.ConnectivityTesterTests.Five_hundred_status_is_retried_and_recovers",
+        "Outcome":  "Passed",
+        "DurationMs":  261
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.RepositoryTests",
+        "TestName":  "AutoProxy.Core.Tests.RepositoryTests.Explicit_file_path_is_used_as_the_database_file",
+        "Outcome":  "Passed",
+        "DurationMs":  9
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.LogServiceTests",
+        "TestName":  "AutoProxy.Core.Tests.LogServiceTests.Credentials_in_detail_are_redacted",
+        "Outcome":  "Passed",
+        "DurationMs":  2
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ProxyValidatorTests",
+        "TestName":  "AutoProxy.Core.Tests.ProxyValidatorTests.Valid_hosts_are_accepted(host: \"proxy.example.com\")",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.DecisionEngineTests",
+        "TestName":  "AutoProxy.Core.Tests.DecisionEngineTests.Offline_reason_includes_failure_cause_and_proxy_summary",
+        "Outcome":  "Passed",
+        "DurationMs":  10
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.LogServiceTests",
+        "TestName":  "AutoProxy.Core.Tests.LogServiceTests.Credentials_after_scheme_delimiter_are_redacted",
+        "Outcome":  "Passed",
+        "DurationMs":  1
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ProxyRankerTests",
+        "TestName":  "AutoProxy.Core.Tests.ProxyRankerTests.Preferred_match_ignored_when_id_is_zero",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.LogServiceTests",
+        "TestName":  "AutoProxy.Core.Tests.LogServiceTests.Credentials_in_log_messages_are_redacted(input: \"joined user:secret@socks.example and user:p2@http.\"···, expected: \"joined [credentials hidden]@socks.example and [cre\"···)",
+        "Outcome":  "Passed",
+        "DurationMs":  2
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ProxyRankerTests",
+        "TestName":  "AutoProxy.Core.Tests.ProxyRankerTests.Recent_success_outweighs_older_faster_proxy",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ProxyValidatorTests",
+        "TestName":  "AutoProxy.Core.Tests.ProxyValidatorTests.FormatAddress_formats_endpoints_correctly(host: \"::1\", port: 8080, expected: \"[::1]:8080\")",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ConnectivityTesterTests",
+        "TestName":  "AutoProxy.Core.Tests.ConnectivityTesterTests.No_endpoints_returns_empty_result",
+        "Outcome":  "Passed",
+        "DurationMs":  1
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.DirectTestResultClassificationTests",
+        "TestName":  "AutoProxy.Core.Tests.DirectTestResultClassificationTests.Unclassified_failures_fall_back_to_offline",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ConnectivityTesterTests",
+        "TestName":  "AutoProxy.Core.Tests.ConnectivityTesterTests.Http_511_is_treated_as_captive_portal",
+        "Outcome":  "Passed",
+        "DurationMs":  16
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ProxyValidatorTests",
+        "TestName":  "AutoProxy.Core.Tests.ProxyValidatorTests.Valid_ports_are_accepted(port: 8080)",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ApplyEngineTests",
+        "TestName":  "AutoProxy.Core.Tests.ApplyEngineTests.Non_connectable_states_also_disable_the_proxy(state: Offline)",
+        "Outcome":  "Passed",
+        "DurationMs":  305
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ConnectivityTesterTests",
+        "TestName":  "AutoProxy.Core.Tests.ConnectivityTesterTests.Dns_failure_is_classified",
+        "Outcome":  "Passed",
+        "DurationMs":  271
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ProxyValidatorTests",
+        "TestName":  "AutoProxy.Core.Tests.ProxyValidatorTests.Validate_accepts_a_complete_profile",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.AppSettingsTests",
+        "TestName":  "AutoProxy.Core.Tests.AppSettingsTests.Proxy_settings_factories_are_consistent",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.DirectTestResultClassificationTests",
+        "TestName":  "AutoProxy.Core.Tests.DirectTestResultClassificationTests.Content_mismatch_yields_blocked_reason",
+        "Outcome":  "Passed",
+        "DurationMs":  1
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ProxyValidatorTests",
+        "TestName":  "AutoProxy.Core.Tests.ProxyValidatorTests.Valid_hosts_are_accepted(host: \"127.0.0.1\")",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.DetectionEngineIntegrationTests",
+        "TestName":  "AutoProxy.Core.Tests.DetectionEngineIntegrationTests.Network_profile_is_upserted_on_first_detection",
+        "Outcome":  "Passed",
+        "DurationMs":  1
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ProxyRankerTests",
+        "TestName":  "AutoProxy.Core.Tests.ProxyRankerTests.Preferred_proxy_is_ranked_first_despite_worse_stats",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ProxyValidatorTests",
+        "TestName":  "AutoProxy.Core.Tests.ProxyValidatorTests.Valid_hosts_are_accepted(host: \"192.168.1.10\")",
+        "Outcome":  "Passed",
+        "DurationMs":  0
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ProxyRankerTests",
+        "TestName":  "AutoProxy.Core.Tests.ProxyRankerTests.Recent_failure_plus_slowness_sinks_a_recent_success",
+        "Outcome":  "Passed",
+        "DurationMs":  8
+    },
+    {
+        "Assembly":  "Core",
+        "ClassName":  "AutoProxy.Core.Tests.ConnectivityTesterTests",
+        "TestName":  "AutoProxy.Core.Tests.ConnectivityTesterTests.Healthy_endpoint_reports_success",
+        "Outcome":  "Passed",
+        "DurationMs":  1
+    },
+    {
+        "Assembly":  "Windows",
+        "ClassName":  "AutoProxy.Windows.Tests.CredentialManagerTests",
+        "TestName":  "AutoProxy.Windows.Tests.CredentialManagerTests.Save_read_delete_round_trips_the_password",
+        "Outcome":  "Passed",
+        "DurationMs":  13
+    },
+    {
+        "Assembly":  "Windows",
+        "ClassName":  "AutoProxy.Windows.Tests.WindowsProxyManagerTests",
+        "TestName":  "AutoProxy.Windows.Tests.WindowsProxyManagerTests.Apply_and_restore_round_trips_the_system_proxy",
+        "Outcome":  "Passed",
+        "DurationMs":  190
+    },
+    {
+        "Assembly":  "Windows",
+        "ClassName":  "AutoProxy.Windows.Tests.CredentialManagerTests",
+        "TestName":  "AutoProxy.Windows.Tests.CredentialManagerTests.Deleting_a_non_existent_credential_is_successful",
+        "Outcome":  "Passed",
+        "DurationMs":  8
+    },
+    {
+        "Assembly":  "Windows",
+        "ClassName":  "AutoProxy.Windows.Tests.WindowsProxyManagerTests",
+        "TestName":  "AutoProxy.Windows.Tests.WindowsProxyManagerTests.Disable_and_restore_round_trips_the_system_proxy",
+        "Outcome":  "Passed",
+        "DurationMs":  101
+    },
+    {
+        "Assembly":  "Windows",
+        "ClassName":  "AutoProxy.Windows.Tests.CredentialManagerTests",
+        "TestName":  "AutoProxy.Windows.Tests.CredentialManagerTests.Oversized_password_falls_back_to_the_dpapi_store",
+        "Outcome":  "Passed",
+        "DurationMs":  28
+    },
+    {
+        "Assembly":  "Windows",
+        "ClassName":  "AutoProxy.Windows.Tests.CredentialManagerTests",
+        "TestName":  "AutoProxy.Windows.Tests.CredentialManagerTests.Missing_target_or_username_is_rejected",
+        "Outcome":  "Passed",
+        "DurationMs":  6
+    }
+]
+</script>
+<script>
+(function(){
+  const data = JSON.parse(document.getElementById('testdata').textContent);
+  const q = document.getElementById('q');
+  const tbody = document.getElementById('tbody');
+  const compGrid = document.getElementById('compGrid');
+  const filters = document.getElementById('filters');
+  const genAt = document.getElementById('genAt');
+  genAt.textContent = new Date().toISOString().slice(0,19).replace('T',' ');
+
+  const byClass = {};
+  data.forEach(t => { (byClass[t.ClassName] = byClass[t.ClassName] || []).push(t); });
+  const classes = Object.entries(byClass).sort((a,b) => b[1].length - a[1].length);
+
+  // component bars
+  const max = classes[0][1].length;
+  compGrid.innerHTML = classes.map(([c, tests], i) => `
+    <div class="comp">
+      <div class="row">
+        <span class="nm">${c.replace(/^AutoProxy\.(Core|Windows)\.Tests\./, g => g + ' · ')}</span>
+        <span class="cnt">${tests.length} / ${tests.length} ✓</span>
+      </div>
+      <div class="track"><div class="fill" style="width:${(tests.length/max*100).toFixed(1)}%;animation-delay:${i*60}ms"></div></div>
+    </div>`).join('');
+
+  // filters
+  const facets = ['AutoProxy.Core.Tests','AutoProxy.Windows.Tests'];
+  facets.forEach(f => {
+    const pill = document.createElement('button');
+    pill.className = 'pill on';
+    pill.textContent = f.replace('AutoProxy.','').replace('.Tests','');
+    pill.dataset.f = f;
+    pill.onclick = () => { pill.classList.toggle('on'); draw(); };
+    filters.appendChild(pill);
+  });
+
+  let active = new Set(facets);
+  function draw(){
+    const term = q.value.toLowerCase().trim();
+    const rows = [];
+    classes.forEach(([c, tests]) => {
+      const base = c.split('.Tests.')[0] + '.Tests';
+      if(!active.has(base)) return;
+      const matched = tests.filter(t => term === '' || t.TestName.toLowerCase().includes(term) || t.ClassName.toLowerCase().includes(term));
+      if(!matched.length) return;
+      rows.push(`<tr class="grp"><td colspan="4">${c.replace(/^AutoProxy\./, '')} <span class="n">— ${matched.length}/${tests.length} shown · ${matched.reduce((a,t)=>t.DurationMs+a,0)} ms</span></td></tr>`);
+      matched.forEach(t => {
+        rows.push(`<tr>
+          <td class="asm">${t.Assembly}</td>
+          <td class="tname">${t.TestName.replace(/^[^.]+\.[^.]+\.Tests\./, '')}</td>
+          <td class="dur">${t.DurationMs} ms</td>
+          <td class="out"><span class="badge pass">PASS</span></td>
+        </tr>`);
+      });
+    });
+    tbody.innerHTML = rows.join('');
+    document.getElementById('shown').textContent = tbody.querySelectorAll('tr:not(.grp)').length;
+  }
+  q.addEventListener('input', draw);
+  draw();
+})();
+</script>
+</body>
+</html>

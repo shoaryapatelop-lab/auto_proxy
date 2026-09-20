@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 760" font-family="Consolas, 'Cascadia Mono', Menlo, monospace">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#5b6675"/>
+    </marker>
+    <linearGradient id="ui" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1c2129" stop-opacity="0.06"/>
+      <stop offset="1" stop-color="#1c2129" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .box { fill:#ffffff; stroke:#c8d0da; stroke-width:1.2; rx:8; }
+    .box-k { fill:#f8fafc; stroke:#c8d0da; stroke-width:1; rx:8; }
+    .t { fill:#0c0e12; font-size:13; font-weight:bold; letter-spacing:.05em; }
+    .s { fill:#5b6675; font-size:11; }
+    .k { fill:#0c0e12; font-size:12; font-weight:bold; letter-spacing:.12em; }
+    .line { stroke:#5b6675; stroke-width:1.3; fill:none; }
+    .edge { stroke:#5b6675; stroke-width:1.3; fill:none; marker-end:url(#arrow); }
+    .tag { fill:#ffffff; stroke:#a7f33c; stroke-width:1.5; }
+    .tagtxt { fill:#0c0e12; font-size:11; font-weight:bold; }
+  </style>
+
+  <!-- Title -->
+  <text x="620" y="34" text-anchor="middle" font-size="20" font-weight="bold" letter-spacing=".2em" fill="#0c0e12">AUTOPROXY — DETECT → DECIDE → APPLY → VERIFY</text>
+  <text x="620" y="54" text-anchor="middle" font-size="12" fill="#5b6675">detection &amp; proxy-application pipeline · Windows system proxy</text>
+
+  <!-- 1. UI column -->
+  <g>
+    <rect x="30" y="90" width="210" height="86" class="box-k"/>
+    <text x="135" y="118" text-anchor="middle" class="k">WPF UI (MVVM)</text>
+    <text x="135" y="138" text-anchor="middle" class="s">Dashboard · Proxies · Networks</text>
+    <text x="135" y="155" text-anchor="middle" class="s">Logs · Settings · Tray</text>
+
+    <rect x="30" y="196" width="210" height="54" class="box-k"/>
+    <text x="135" y="222" text-anchor="middle" class="k">CompositionRoot</text>
+    <text x="135" y="239" text-anchor="middle" class="s">Microsoft.Extensions.DI</text>
+
+    <rect x="30" y="270" width="210" height="54" class="box"/>
+    <text x="135" y="296" text-anchor="middle" class="t">AppStateService</text>
+    <text x="135" y="313" text-anchor="middle" class="s">observable connection state</text>
+  </g>
+
+  <!-- 2. Monitoring -->
+  <g>
+    <rect x="300" y="90" width="280" height="54" class="box"/>
+    <text x="440" y="116" text-anchor="middle" class="t">MonitoringService</text>
+    <text x="440" y="133" text-anchor="middle" class="s">network events · health loop · hysteresis</text>
+
+    <rect x="300" y="164" width="280" height="120" class="box"/>
+    <text x="440" y="192" text-anchor="middle" class="t">DetectionEngine</text>
+    <text x="440" y="212" text-anchor="middle" class="s">network identity → direct probe</text>
+    <text x="440" y="228" text-anchor="middle" class="s">→ proxy ranking → decision</text>
+    <text x="440" y="248" text-anchor="middle" class="s">DecisionEngine (pure) · ProxyRanker</text>
+    <text x="440" y="268" text-anchor="middle" class="s">RetryPolicy (threshold)</text>
+
+    <rect x="300" y="304" width="280" height="54" class="box"/>
+    <text x="440" y="330" text-anchor="middle" class="t">NativeNetworkMonitor</text>
+    <text x="440" y="347" text-anchor="middle" class="s">wlanapi · iphlpapi · SHA-256 identity</text>
+  </g>
+
+  <!-- 3. Connectivity -->
+  <g>
+    <rect x="640" y="90" width="260" height="54" class="box"/>
+    <text x="770" y="116" text-anchor="middle" class="t">ConnectivityTester</text>
+    <text x="770" y="133" text-anchor="middle" class="s">204 probes · portal detection · retry</text>
+
+    <rect x="640" y="164" width="260" height="54" class="box"/>
+    <text x="770" y="190" text-anchor="middle" class="t">ProxyTester</text>
+    <text x="770" y="207" text-anchor="middle" class="s">SocketsHttpHandler + WebProxy</text>
+
+    <rect x="640" y="300" width="260" height="58" class="box"/>
+    <text x="770" y="326" text-anchor="middle" class="t">ApplyEngine</text>
+    <text x="770" y="343" text-anchor="middle" class="s">snapshot → apply → verify → commit</text>
+  </g>
+
+  <!-- 4. Windows -->
+  <g>
+    <rect x="960" y="90" width="250" height="82" class="box"/>
+    <text x="1085" y="118" text-anchor="middle" class="t">WindowsProxyManager</text>
+    <text x="1085" y="138" text-anchor="middle" class="s">WinINet HKCU registry + blobs</text>
+    <text x="1085" y="155" text-anchor="middle" class="s">WinHTTP (netsh) · snapshot</text>
+
+    <rect x="960" y="250" width="250" height="54" class="box"/>
+    <text x="1085" y="276" text-anchor="middle" class="t">CredentialManager</text>
+    <text x="1085" y="293" text-anchor="middle" class="s">Credential Manager + DPAPI fallback</text>
+
+    <rect x="960" y="324" width="250" height="54" class="box"/>
+    <text x="1085" y="350" text-anchor="middle" class="t">LogService</text>
+    <text x="1085" y="367" text-anchor="middle" class="s">ring buffer · file · SQLite · redaction</text>
+  </g>
+
+  <!-- 5. Data -->
+  <g>
+    <rect x="300" y="420" width="610" height="62" class="box-k"/>
+    <text x="605" y="448" text-anchor="middle" class="k">AutoProxy.Data — SQLite (WAL)</text>
+    <text x="605" y="467" text-anchor="middle" class="s">Proxies · Networks · Settings · DetectionHistory · Logs</text>
+  </g>
+
+  <!-- edges : UI <-> monitoring -->
+  <path d="M240,196 L300,117" class="edge"/>
+  <path d="M440,220 C560,250 600,320 640,329" class="edge"/>
+  <!-- detection -> connectivity -->
+  <path d="M300,200 C570,170 580,120 640,117" class="edge"/>
+  <path d="M300,224 C560,210 580,190 640,191" class="edge"/>
+  <!-- connectivity -> data -->
+  <path d="M580,348 C585,400 600,430 610,420" stroke="#5b6675" stroke-width="1.3" fill="none"/>
+  <!-- monitoring -> windows -->
+  <path d="M580,333 C640,340 780,350 960,335" class="edge"/>
+  <path d="M900,340 C900,340 900,340 900,340" fill="none"/>
+  <!-- apply -> windowsproxy -->
+  <path d="M900,329 C930,240 950,150 960,131" class="edge"/>
+  <!-- detection/subscriptions -->
+  <path d="M440,144 C470,144 300,144 270,270" stroke="#5b6675" stroke-width="1.3" fill="none" stroke-dasharray="4 3"/>
+  <!-- windowsproxy -> logservice -->
+  <path d="M1085,172 L1085,324" class="edge"/>
+  <!-- data edges -->
+  <path d="M135,324 C135,420 280,451 300,451" stroke="#5b6675" stroke-width="1.3" fill="none"/>
+  <path d="M440,358 L440,420" class="edge"/>
+  <path d="M770,163 L770,300" class="edge"/>
+
+  <!-- status tag -->
+  <g transform="translate(540,470)">
+    <polygon points="0,14 12,2 118,2 130,14 118,26 12,26" class="tag"/>
+    <text x="65" y="18" text-anchor="middle" class="tagtxt">106 / 106 TESTS PASSING</text>
+  </g>
+  <text x="605" y="530" text-anchor="middle" font-size="11" fill="#8a96a6">Core = zero Windows dependencies · Windows layer owns all P/Invoke · App owns UI + DI</text>
+</svg>

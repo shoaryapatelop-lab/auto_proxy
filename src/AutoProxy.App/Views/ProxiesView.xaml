@@ -1,0 +1,67 @@
+<UserControl x:Class="AutoProxy.App.Views.ProxiesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:AutoProxy.App.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:ProxiesViewModel}">
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0">
+            <TextBlock Text="Proxies" FontSize="22" FontWeight="Bold"/>
+            <TextBlock Text="Saved proxy servers. Only enabled proxies participate in detection."
+                       Foreground="{StaticResource TextSecondaryBrush}" Margin="0,6,0,0"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,18,0,14">
+            <Button Style="{StaticResource PrimaryButton}" Content="Add proxy"
+                    Command="{Binding AddCommand}"/>
+            <Button Style="{StaticResource SecondaryButton}" Content="Edit"
+                    Margin="8,0,0,0" Command="{Binding EditCommand}"/>
+            <Button Style="{StaticResource SecondaryButton}" Content="Enable / disable"
+                    Margin="8,0,0,0" Command="{Binding ToggleCommand}"/>
+            <Button Style="{StaticResource SecondaryButton}" Content="Test"
+                    Margin="8,0,0,0" Command="{Binding TestCommand}"/>
+            <Button Style="{StaticResource SecondaryButton}" Content="Set as preferred for network"
+                    Margin="8,0,0,0" Command="{Binding SetPreferredCommand}"/>
+            <Button Style="{StaticResource DangerButton}" Content="Delete"
+                    Margin="8,0,0,0" Command="{Binding DeleteCommand}"/>
+            <TextBlock Text="Working…" VerticalAlignment="Center" Margin="12,0,0,0"
+                       Foreground="{StaticResource TextMutedBrush}"
+                       Visibility="{Binding IsLoading,
+                           Converter={StaticResource BoolToVisibility}}"/>
+        </StackPanel>
+
+        <ListView Grid.Row="2" ItemsSource="{Binding Proxies}"
+                  SelectedItem="{Binding Selected}">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="Name" Width="180"
+                                    DisplayMemberBinding="{Binding Name}"/>
+                    <GridViewColumn Header="Address" Width="200"
+                                    DisplayMemberBinding="{Binding Address}"/>
+                    <GridViewColumn Header="Enabled" Width="90"
+                                    DisplayMemberBinding="{Binding EnabledText}"/>
+                    <GridViewColumn Header="Status" Width="130"
+                                    DisplayMemberBinding="{Binding Status}"/>
+                    <GridViewColumn Header="Latency" Width="100"
+                                    DisplayMemberBinding="{Binding LatencyText}"/>
+                    <GridViewColumn Header="Last tested" Width="170"
+                                    DisplayMemberBinding="{Binding LastTestedText}"/>
+                </GridView>
+            </ListView.View>
+        </ListView>
+
+        <TextBlock Grid.Row="3" Margin="0,12,0,0"
+                   Foreground="{StaticResource TextMutedBrush}" FontSize="12"
+                   Text="Tip: “Set as preferred” pins the selected proxy to the current network profile."/>
+    </Grid>
+</UserControl>

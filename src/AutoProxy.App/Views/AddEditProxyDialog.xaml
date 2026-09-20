@@ -1,0 +1,54 @@
+<Window x:Class="AutoProxy.App.Views.AddEditProxyDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Proxy" Width="440" SizeToContent="Height"
+        ResizeMode="NoResize" WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False">
+
+    <StackPanel Margin="24">
+        <TextBlock Text="Name" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
+        <TextBox x:Name="NameBox" Margin="0,6,0,14"/>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="120"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" Margin="0,0,14,0">
+                <TextBlock Text="Host" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
+                <TextBox x:Name="HostBox" Margin="0,6,0,0"/>
+            </StackPanel>
+            <StackPanel Grid.Column="1">
+                <TextBlock Text="Port" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
+                <TextBox x:Name="PortBox" Margin="0,6,0,0"/>
+            </StackPanel>
+        </Grid>
+
+        <CheckBox x:Name="AuthCheck" Content="Requires authentication"
+                  Margin="0,18,0,0" Checked="AuthCheck_Changed" Unchecked="AuthCheck_Changed"/>
+
+        <StackPanel x:Name="AuthPanel" Margin="0,14,0,0" Visibility="Collapsed">
+            <TextBlock Text="Username" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
+            <TextBox x:Name="UsernameBox" Margin="0,6,0,12"/>
+            <TextBlock Text="Password" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
+            <PasswordBox x:Name="PasswordBox" Margin="0,6,0,0"/>
+            <TextBlock Text="Stored in Windows Credential Manager — never written to the database."
+                       Foreground="{StaticResource TextMutedBrush}" FontSize="11"
+                       TextWrapping="Wrap" Margin="0,8,0,0"/>
+        </StackPanel>
+
+        <CheckBox x:Name="EnabledCheck" Content="Enabled for automatic detection"
+                  Margin="0,18,0,0"/>
+
+        <TextBlock x:Name="ErrorText" Foreground="{StaticResource DangerBrush}"
+                   FontSize="12" TextWrapping="Wrap" Margin="0,14,0,0"
+                   Visibility="Collapsed"/>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,22,0,0">
+            <Button Style="{StaticResource SecondaryButton}" Content="Cancel"
+                    IsCancel="True" Click="Cancel_Click" Width="100"/>
+            <Button Style="{StaticResource PrimaryButton}" Content="Save"
+                    IsDefault="True" Click="Ok_Click" Width="100" Margin="10,0,0,0"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

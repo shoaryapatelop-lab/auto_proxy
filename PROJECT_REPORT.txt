@@ -1,0 +1,385 @@
+================================================================================
+                         AUTOPROXY - PROJECT REPORT
+================================================================================
+Generated: 2026-09-18
+Solution:  V:\IOT\AutoProxy\AutoProxy.sln
+
+================================================================================
+1. PROJECT OVERVIEW
+================================================================================
+
+AutoProxy is a Windows desktop application (.NET 8 / WPF) that automatically
+detects the current network environment and switches between direct internet
+access and a configured proxy server. It monitors network changes, tests
+connectivity, applies the optimal proxy configuration to the Windows system
+proxy settings, and runs a background health-check loop to handle failures.
+
+================================================================================
+2. SOLUTION STRUCTURE
+================================================================================
+
+AutoProxy.sln
+ |
+ +-- src/
+ |    +-- AutoProxy.Core/         Core abstractions, models, detection, services
+ |    +-- AutoProxy.Data/         SQLite persistence (repositories)
+ |    +-- AutoProxy.Windows/      Windows-specific implementations (proxy, credentials, network)
+ |    +-- AutoProxy.App/          WPF application (UI, ViewModels, DI)
+ |
+ +-- tests/
+      +-- AutoProxy.Core.Tests/       xUnit tests for core logic + data layer
+      +-- AutoProxy.Windows.Tests/    xUnit tests for Windows proxy & credential managers
+
+================================================================================
+3. PROJECT DETAILS
+================================================================================
+
+3.1 AutoProxy.Core (net8.0, no dependencies)
+----------------------------------------------
+Target: net8.0 | Language: C# 12 | Nullable: enabled
+
+Purpose: Platform-independent business logic. Contains no Windows-specific or
+         UI code.
+
+Subdirectories & files:
+  Models/
+    - AppMode.cs                  Enum: Automatic, ManualDirect, ManualProxy, ManualDisable
+    - AppSettings.cs              Configurable settings (probe URLs, timeouts, thresholds)
+    - ConnectionState.cs          Enum: Detecting, Direct, Proxy, Offline, CaptivePortal, Error
+    - CurrentNetwork.cs           NetworkIdentity + HasActiveRoute flag
+    - DetectionResult.cs          Result of a detection run (state, selected proxy, latency, detail)
+    - DirectTestResult.cs         Results of testing direct internet connectivity (per-endpoint)
+    - LogEntry.cs                 Log entry model with LogLevel, category, message, detail
+    - NetworkIdentity.cs          Unique network identity (hash-based ID, SSID, gateway, subnet)
+    - NetworkProfile.cs           Persisted network profile (preferred mode + preferred proxy)
+    - ProxyProfile.cs             Proxy server definition (host, port, auth, success/failure stats)
+    - ProxyTestResult.cs          Result of testing a proxy (outcome, latency, HTTP status, auth flag)
+
+  Abstractions/
+    - IConnectivityTester.cs      Test direct internet connectivity
+    - ICredentialManager.cs       Save/read/delete proxy credentials
+    - ILogService.cs              Structured logging (Verbose/Info/Warning/Error)
+    - INetworkMonitor.cs          Monitor network changes (events + signature)
+    - IProxyRepository.cs         CRUD for proxy profiles
+    - INetworkRepository.cs       CRUD for network profiles
+    - ISettingsRepository.cs      Load/save AppSettings
+    - IDetectionHistoryRepository.cs  Persist detection history
+    - ILogRepository.cs           Persist log entries
+    - IProxyTester.cs             Test a proxy endpoint (full test + health check)
+    - IWindowsProxyManager.cs     Manage Windows system proxy (WinINet + WinHTTP)
+
+  Network/
+    - ProxyValidator.cs           Host/port validation, address formatting (IPv6 support)
+    - ProxyTester.cs              Full proxy test implementation (SocketsHttpHandler + WebProxy)
+    - ConnectivityTester.cs       Direct internet test with captive-portal detection
+
+  Detection/
+    - DetectionEngine.cs          Orchestrates detection: network -> direct test -> proxy test -> decision
+    - DecisionEngine.cs           Pure decision logic: Direct? Proxy? CaptivePortal? Offline? Error?
+    - RetryPolicy.cs              Hysteresis gate for health-check failure escalation
+
+  Monitoring/
+    - MonitoringService.cs        Background loop: network change -> detect -> apply -> health check
+
+  Services/
+    - AppStateService.cs          Observable application state (mode, last result, events)
+    - LogService.cs               Dual-output logging (ring buffer + file + SQLite), credential redaction
+
+3.2 AutoProxy.Data (net8.0, depends on AutoProxy.Core)
+-------------------------------------------------------
+NuGet: Microsoft.Data.Sqlite 8.0.11
+
+Purpose: SQLite persistence layer.
+
+  - DatabaseContext.cs            Opens/creates DB, runs migrations (WAL, foreign keys, 5 tables)
+  - ProxyRepository.cs            CRUD for Proxies table
+  - NetworkRepository.cs          CRUD for Networks table (UPSERT on NetworkIdentifier)
+  - SettingsRepository.cs         JSON-serialized settings in Settings table
+  - DetectionHistoryRepository.cs Insert/read for DetectionHistory table
+  - LogRepository.cs              Batch insert + read for Logs table (transactional)
+
+  Database schema (5 tables):
+    Proxies:          Id, Name, Host, Port, AuthRequired, CredentialId, Enabled, stats...
+    Networks:         Id, NetworkIdentifier (UNIQUE), Ssid, Gateway, InterfaceType, PreferredMode,
+                      PreferredProxyId (FK->Proxies), LastSeen, CreatedAt
+    Settings:         Key (PK), Value (JSON text)
+    DetectionHistory: Id, NetworkId (FK->Networks), Mode, ProxyId, Result, LatencyMs, Timestamp
+    Logs:             Id, Timestamp, Level, Category, Message, Detail, NetworkId, ProxyId
+
+3.3 AutoProxy.Windows (net8.0-windows, depends on AutoProxy.Core)
+-----------------------------------------------------------------
+NuGet: System.Security.Cryptography.ProtectedData 8.0.0
+
+Purpose: Windows-specific platform implementations using P/Invoke.
+
+  - WindowsProxyManager.cs       Manages WinINet registry (HKCU\Internet Settings),
+                                  connection binary blobs, WinHTTP (netsh), snapshot/restore,
+                                  crash recovery, WM_SETTINGCHANGE broadcast
+  - CredentialManager.cs         Windows Credential Manager (advapi32 P/Invoke) with
+                                  DPAPI-protected fallback file for oversized secrets
+  - NetworkManager.cs            NativeNetworkMonitor: interface enumeration, gateway detection,
+                                  SSID reading via Native Wifi API (wlanapi.dll), debounced
+                                  network-change events, negative-watch loop (identity drift)
+
+3.4 AutoProxy.App (net8.0-windows, WPF WinExe)
+-----------------------------------------------
+NuGet: CommunityToolkit.Mvvm 8.3.2, H.NotifyIcon.Wpf 2.1.4,
+       Microsoft.Extensions.DependencyInjection 8.0.1
+Dependencies: AutoProxy.Core, AutoProxy.Data, AutoProxy.Windows
+
+Purpose: WPF desktop application with system-tray integration.
+
+  CompositionRoot.cs             DI container setup (all singletons)
+  App.xaml / App.xaml.cs         Application entry, tray init, monitoring start/stop, --no-monitor flag
+  Theme.xaml                     Dark theme palette + custom control templates (402 lines of XAML)
+  Services/
+    TrayService.cs               System-tray icon, dynamic context menu, mode switching, notifications
+  Converters/
+    EqualsVisibilityConverter.cs IValueConverter for mode-bound UI visibility
+  ViewModels/
+    MainViewModel.cs             Navigation, mode switching, test-now, restore previous settings
+    DashboardViewModel.cs        Status cards, quick-action navigation
+    ProxiesViewModel.cs          Proxy list CRUD, test, toggle, set-preferred, editor model
+    NetworksViewModel.cs         Network profiles list, set preferred mode, forget
+    LogsViewModel.cs             Live log viewer (ring buffer from LogService + DB history)
+    SettingsViewModel.cs         Settings editor (probe URLs, timeouts, thresholds, behavior)
+  Views/
+    MainWindow.xaml/.cs          Sidebar + top bar + ContentControl for page navigation
+    DashboardView.xaml/.cs       6 stat cards + quick-action buttons
+    ProxiesView.xaml/.cs         ListView with Name/Address/Enabled/Status/Latency/LastTested columns
+    NetworksView.xaml/.cs        ListView + preferred-mode selector + forget button
+    LogsView.xaml/.cs            Live log ListView with color-coded levels
+    SettingsView.xaml/.cs        Probe URLs, timing, behavior, Windows proxy restore
+    AddEditProxyDialog.xaml/.cs  Modal dialog for add/edit proxy with auth fields
+
+================================================================================
+4. KEY NUGET PACKAGES
+================================================================================
+
+Project                         Package                               Version
+----------------------------------------------------------------------
+AutoProxy.Data                  Microsoft.Data.Sqlite                 8.0.11
+AutoProxy.Windows               System.Security.Cryptography.ProtectedData 8.0.0
+AutoProxy.App                   CommunityToolkit.Mvvm                 8.3.2
+AutoProxy.App                   H.NotifyIcon.Wpf                      2.1.4
+AutoProxy.App                   Microsoft.Extensions.DependencyInjection 8.0.1
+AutoProxy.Core.Tests            Microsoft.NET.Test.Sdk                17.12.0
+AutoProxy.Core.Tests            xunit                                 2.9.2
+AutoProxy.Core.Tests            xunit.runner.visualstudio             2.8.2
+AutoProxy.Windows.Tests         Microsoft.NET.Test.Sdk                17.12.0
+AutoProxy.Windows.Tests         xunit                                 2.9.2
+AutoProxy.Windows.Tests         xunit.runner.visualstudio             2.8.2
+
+================================================================================
+5. FILE INVENTORY (source files only, excluding obj/bin)
+================================================================================
+
+Source files (.cs):
+  src/AutoProxy.Core/Models/              11 files  (AppMode, AppSettings, ConnectionState,
+                                                       CurrentNetwork, DetectionResult,
+                                                       DirectTestResult, LogEntry,
+                                                       NetworkIdentity, NetworkProfile,
+                                                       ProxyProfile, ProxyTestResult)
+  src/AutoProxy.Core/Abstractions/         7 files  (IConnectivityTester, ICredentialManager,
+                                                       ILogService, INetworkMonitor,
+                                                       IProxyRepository, IProxyTester,
+                                                       IWindowsProxyManager, + IRepositories.cs)
+  src/AutoProxy.Core/Network/              3 files  (ConnectivityTester, ProxyTester, ProxyValidator)
+  src/AutoProxy.Core/Detection/            3 files  (DecisionEngine, DetectionEngine, RetryPolicy)
+  src/AutoProxy.Core/Monitoring/           1 file   (MonitoringService)
+  src/AutoProxy.Core/Services/             2 files  (AppStateService, LogService)
+  src/AutoProxy.Data/                      6 files  (DatabaseContext, ProxyRepository,
+                                                       NetworkRepository, SettingsRepository,
+                                                       DetectionHistoryRepository, LogRepository)
+  src/AutoProxy.Windows/                   3 files  (WindowsProxyManager, CredentialManager,
+                                                       NetworkManager)
+  src/AutoProxy.App/                       4 files  (App.xaml.cs, CompositionRoot, TrayService,
+                                                       EqualsVisibilityConverter)
+  src/AutoProxy.App/ViewModels/            6 files  (Main, Dashboard, Proxies, Networks, Logs,
+                                                       Settings ViewModels)
+  src/AutoProxy.App/Views/                 7 pairs  (MainWindow, DashboardView, ProxiesView,
+                                                       NetworksView, LogsView, SettingsView,
+                                                       AddEditProxyDialog -- .xaml + .xaml.cs)
+  tests/AutoProxy.Core.Tests/              8 files  (TestInfrastructure, ProxyValidatorTests,
+                                                       DecisionEngineTests, RepositoryTests,
+                                                       RetryPolicyTests, LogServiceTests,
+                                                       DetectionEngineIntegrationTests,
+                                                       MonitoringServiceTests)
+  tests/AutoProxy.Windows.Tests/           2 files  (CredentialManagerTests,
+                                                       WindowsProxyManagerTests)
+
+XAML files:
+  src/AutoProxy.App/App.xaml
+  src/AutoProxy.App/Theme.xaml
+  src/AutoProxy.App/Views/MainWindow.xaml
+  src/AutoProxy.App/Views/DashboardView.xaml
+  src/AutoProxy.App/Views/ProxiesView.xaml
+  src/AutoProxy.App/Views/NetworksView.xaml
+  src/AutoProxy.App/Views/LogsView.xaml
+  src/AutoProxy.App/Views/SettingsView.xaml
+  src/AutoProxy.App/Views/AddEditProxyDialog.xaml
+
+Project files (.csproj):
+  6 total (4 src + 2 tests)
+
+Solution file:
+  1 (AutoProxy.sln -- 6 projects, Debug|Any CPU + Release|Any CPU)
+
+================================================================================
+6. ARCHITECTURE SUMMARY
+================================================================================
+
+  [WPF UI]  <-- MVVM via CommunityToolkit.Mvvm
+      |
+  [CompositionRoot]  <-- Microsoft.Extensions.DependencyInjection
+      |
+  +-- MonitoringService  (background loop, network change events, health check)
+  |       |
+  |   +-- DetectionEngine  (orchestrator)
+  |   |       |
+  |   |   +-- INetworkMonitor -> NativeNetworkMonitor (P/Invoke: wlanapi, iphlpapi)
+  |   |   +-- IConnectivityTester -> ConnectivityTester (HttpClient, captive portal detection)
+  |   |   +-- IProxyTester -> ProxyTester (SocketsHttpHandler + WebProxy)
+  |   |   +-- DecisionEngine (pure function: Direct? Proxy? Offline? CaptivePortal?)
+  |   |   +-- IProxyRepository -> ProxyRepository (SQLite)
+  |   |   +-- INetworkRepository -> NetworkRepository (SQLite)
+  |   |   +-- IDetectionHistoryRepository -> DetectionHistoryRepository (SQLite)
+  |   |
+  |   +-- IWindowsProxyManager -> WindowsProxyManager (WinINet registry + WinHTTP)
+  |   +-- AppStateService (observable state, events)
+  |   +-- ISettingsRepository -> SettingsRepository (SQLite, JSON)
+  |
+  +-- TrayService  (system tray, context menu, notifications)
+  +-- LogService   (ring buffer + file + SQLite, credential redaction)
+  +-- CredentialManager  (Windows Credential Manager + DPAPI fallback)
+
+================================================================================
+7. KEY DESIGN DECISIONS
+================================================================================
+
+  - Clean separation: Core has zero Windows dependencies; Windows layer handles
+    all P/Invoke; Data layer handles SQLite; App layer handles WPF + DI.
+  - All services registered as singletons (no request scope needed).
+  - System proxy managed via both WinINet (registry + binary blobs + broadcast)
+    and WinHTTP (netsh) for maximum application compatibility.
+  - Crash recovery: proxy snapshot persisted to disk; on restart, if the proxy
+    settings AutoProxy left behind are still active, they are restored.
+  - Network identity is a SHA-256 hash of interface kind + identifier (SSID or
+    gateway/subnet), enabling automatic network profile matching.
+  - Proxy testing sends requests through a SocketsHttpHandler with WebProxy set
+    to the candidate proxy, probing configured 204 endpoints.
+  - Captive portal detection looks for redirects and HTML login page keywords.
+  - Credential storage uses Windows Credential Manager with DPAPI file fallback.
+  - Hysteresis (RetryPolicy) prevents rapid mode switching: health checks must
+    fail N consecutive times before triggering a full re-detection.
+  - Stale-result protection: new network change events cancel in-flight
+    detections so the newest result always wins.
+  - Logging automatically redacts credentials (user:pass@ patterns).
+
+================================================================================
+8. TEST COVERAGE
+================================================================================
+
+AutoProxy.Core.Tests (8 test classes, ~30+ test methods):
+  - ProxyValidatorTests:          Host/port validation, format address (IPv6)
+  - AppSettingsTests:             Effective probe URLs, dedup, ProxySettings factories
+  - DecisionEngineTests:          All decision branches (direct, proxy, captive portal, offline, error)
+  - RepositoryTests:              Full CRUD round-trips for all 5 repositories via SQLite
+  - RetryPolicyTests:             Threshold clamping, escalation, reset
+  - LogServiceTests:              Credential redaction in messages and details
+  - DetectionEngineIntegrationTests: End-to-end detection with fake dependencies
+  - MonitoringServiceTests:       Stale-result superseding, proxy application, manual test, manual mode
+
+AutoProxy.Windows.Tests (2 test classes):
+  - CredentialManagerTests:       Round-trip, DPAPI fallback for oversized passwords, edge cases
+  - WindowsProxyManagerTests:     Registry round-trip (enable/disable/restore), connection blob handling
+
+================================================================================
+9. NOTABLE CODE LOCATIONS
+================================================================================
+
+  Detection flow:           src/AutoProxy.Core/Monitoring/MonitoringService.cs:118
+  Decision logic:           src/AutoProxy.Core/Detection/DecisionEngine.cs:39
+  Network identity build:   src/AutoProxy.Windows/NetworkManager.cs:274
+  Windows proxy apply:      src/AutoProxy.Windows/WindowsProxyManager.cs:87
+  Crash recovery:           src/AutoProxy.Windows/WindowsProxyManager.cs:245
+  Credential storage:       src/AutoProxy.Windows/CredentialManager.cs:28
+  DB schema creation:       src/AutoProxy.Data/DatabaseContext.cs:63
+  DI composition:           src/AutoProxy.App/CompositionRoot.cs:17
+  System tray menu:         src/AutoProxy.App/Services/TrayService.cs:148
+  Dark theme palette:       src/AutoProxy.App/Theme.xaml:9
+  Proxy edit dialog:        src/AutoProxy.App/Views/AddEditProxyDialog.xaml
+  Main window layout:       src/AutoProxy.App/Views/MainWindow.xaml
+
+================================================================================
+10. TOTAL LOC ESTIMATE
+================================================================================
+
+  Source (.cs):        ~5,500 lines (estimated)
+  XAML:                ~1,050 lines (estimated)
+  Tests (.cs):         ~1,300 lines (estimated)
+  Config (.csproj/sln): ~200 lines
+  --------------------------------------------------
+  TOTAL:              ~8,050 lines of code
+
+================================================================================
+                           END OF REPORT
+================================================================================
+================================================================================
+8. DETECTION & APPLY RELIABILITY IMPROVEMENTS (2026-09-18)
+================================================================================
+
+Detection pipeline
+-------------------
+  INetworkMonitor (NativeNetworkMonitor)
+      -> BuildIdentity: stable SHA-256 identity; WiFi uses SSID (or gateway+
+         subnet fallback when SSID is unknown); Ethernet identity EXCLUDES the
+         DHCP gateway (lease can change) and uses interface ID + subnet only.
+  DetectionEngine
+      -> probes direct connectivity (ConnectivityTester)
+      -> if direct fails: ranks candidates via ProxyRanker and tests in order
+      -> DecisionEngine pick state, produces Reason with failure cause
+  ProxyRanker (NEW)  [Detection/ProxyRanker.cs]
+      -> deterministic scoring: preferred +2000, recent success 500/350/150,
+         success-rate x200, failure count -6, recent failure -80,
+         latency +90/+45/+15; ties resolved by latency then id.
+  ConnectivityTester (NEW classification)
+      -> each probe classified: Healthy, RedirectedToLogin, LoginPageContent,
+         ContentMismatch, HttpError, Timeout, DnsFailure, TlsError,
+         ConnectionFailed, Cancelled
+      -> retries transient failures once (250 ms; timeouts, DNS, 5xx/429)
+      -> HTTP 511 treated as captive portal; portal keywords include "log in"
+  DirectTestResult (NEW)
+      -> FailureReason: None/Offline/ContentBlocked/CaptivePortal/DnsFailure/
+         TlsFailure/Timeout/ConnectionFailed/TestCancelled, plus DiagnosticSummary
+  DetectionResult diagnostics
+      -> carries DirectTest + ProxyTests payload for UI/tests/history
+
+Apply pipeline (NEW)
+-------------------
+  ApplyEngine (Apply/ApplyEngine.cs) between DecisionEngine and IWindowsProxyManager:
+      desired state -> snapshot -> apply -> 300 ms settle -> read-back verify
+      -> (proxy only) traffic verify via IProxyTester -> commit
+      Any failure -> RestorePreviousSettings rollback
+      Disable paths (Direct/Offline/CaptivePortal) skip traffic verify to avoid
+      state flapping; disable is read-back verified only.
+      VerifyProxyAfterApply setting (default true) gates the traffic check.
+  MonitoringService
+      -> detection-driven applies route through ApplyEngine
+      -> apply failure => ConnectionState.Error + explicit rollback message
+      -> Detecting/Error results never touch the system proxy
+
+Windows integration
+-------------------
+  WindowsProxyManager: GetCurrentSettings now reads AutoConfigURL (PAC/WPAD);
+      apply paths never write/clobber it (ownership preserved).
+
+Tests (106 total, all green)
+-----------------------------
+  + ConnectivityTesterTests (classification, retries, portals, timeouts)
+  + ProxyRankerTests (deterministic ordering, preferred, recency, ties)
+  + ApplyEngineTests (no-op, apply, read-back, verify, rollback paths)
+  + MonitoringServiceTests (apply failure -> Error + restore)
+  + DetectionEngineIntegrationTests (diagnostics payload)
+  + DecisionEngineTests (reason strings include failure cause)
+  AutoProxy.Core.csproj: InternalsVisibleTo("AutoProxy.Core.Tests")
