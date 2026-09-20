@@ -459,6 +459,40 @@ ENTRY 005 - 2026-09-20  (per-user install of Release build)
     - Installed app at C:\Users\quicksilver\AppData\Local\Programs\AutoProxy\
     - Created per-user Start Menu shortcut "AutoProxy"
 
+ENTRY 006 - 2026-09-20  (publish project to GitHub)
+  TASK:   Upload the AutoProxy project to
+          https://github.com/shoaryapatelop-lab/auto_proxy with a proper
+          README and all repository requirements.
+  WORK:
+    - Checked environment: git 2.52.0, Git Credential Manager present;
+      target repo already existed (public, default branch 'main') with a
+      boilerplate '# auto_proxy' README only
+    - Created repo scaffolding:
+        .gitignore         (.NET build outputs, .vs/, TestResults, logs)
+        .gitattributes     (LF source, CRLF .sln/.txt, binary safety)
+        LICENSE            (MIT, Shoarya Patel, 2026)
+        README.md          (badges, features, quickstart, install, usage,
+                            pipeline/how-it-works, architecture diagram,
+                            project structure, configuration, testing,
+                            security, troubleshooting, contributing)
+        docs/architecture.svg  (hand-written pipeline diagram, used in README)
+        .github/workflows/dotnet.yml  (CI: build + test on windows-latest)
+    - git init -b main; added origin; fetched existing remote commit
+    - Wired local main onto origin/main (kept the remote commit as the
+      base so the push stays a fast-forward)
+    - Committed: 'Initial commit: AutoProxy source, docs and CI'
+      -> 99 files, 12,293 insertions, no bin/obj/artifacts
+    - git push -u origin main  -> f24236b..10afac1 (success)
+    - Verified via GitHub API: HEAD 10afac1 matches local; 12 top-level
+      entries present (src/, tests/, docs/, reports/, workflows…)
+  FILES CREATED:
+    - .gitignore, .gitattributes, LICENSE, README.md,
+      docs/architecture.svg, .github/workflows/dotnet.yml
+  REMOTE CHANGES:
+    - https://github.com/shoaryapatelop-lab/auto_proxy (branch main)
+  FILES CHANGED:
+    - Updated V:\IOT\AutoProxy\WORKFLOW.txt (this file, ENTRY 006)
+
 ----------------------------------------------------------------------
 
 ================================================================================
